@@ -1,6 +1,6 @@
 # Myinstants3DS
 
-![logo](https://raw.githubusercontent.com/Misakii-P/Myinstants3DS/refs/heads/master/gfx/myinstantsbanner.png)
+![logo](https://github.com/Misakii-P/Myinstants3DS/blob/master/gfx/myinstantsbanner.png)
 
 A homebrew client for [Myinstants](https://www.myinstants.com) for the Nintendo 3DS. Browse, search, and play sound effects directly on your 3DS for the funsies :P
 
