@@ -340,13 +340,17 @@ static void switch_view(View v) {
 
 /* ---- Drawing helpers ---- */
 
-static void draw_circle_filled(float cx, float cy, float r, u32 color) {
+static void draw_circle_outline(float cx, float cy, float r, float thickness, u32 color) {
     int y0 = (int)(cy - r), y1 = (int)(cy + r);
     for (int y = y0; y <= y1; y++) {
         float dy = (float)y + 0.5f - cy;
-        float hw = sqrtf(r * r - dy * dy);
-        if (hw < 0.5f) hw = 0.5f;
-        C2D_DrawRectSolid(cx - hw, (float)y, 0.8f, hw * 2, 1.0f, color);
+        float d = r * r - dy * dy;
+        if (d < 0) continue;
+        float hw = sqrtf(d);
+        float inner = hw - thickness;
+        if (inner < 0) inner = 0;
+        C2D_DrawRectSolid(cx - hw, (float)y, 0.8f, hw - inner, 1.0f, color);
+        C2D_DrawRectSolid(cx + inner, (float)y, 0.8f, hw - inner, 1.0f, color);
     }
 }
 
@@ -525,11 +529,11 @@ static void render_bottom(void) {
         if (star_img->tex)
             C2D_DrawImageAt(*star_img, STAR_X, STAR_Y, 0.8f, NULL, 1.0f, 1.0f);
 
-        /* X button indicator — circle with X inside, left of star */
+        /* X button indicator — outline circle with X inside, left of star */
         float ind_r = 10.0f;
         float ind_cx = STAR_X - ind_r - 4.0f;
         float ind_cy = STAR_Y + STAR_SIZE / 2.0f;
-        draw_circle_filled(ind_cx, ind_cy, ind_r, CLR_BTN);
+        draw_circle_outline(ind_cx, ind_cy, ind_r, 1.5f, CLR_WHITE);
         C2D_Text xt;
         C2D_TextFontParse(&xt, NULL, g_tbuf, "X");
         float xtw, xth;
