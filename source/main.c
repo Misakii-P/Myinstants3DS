@@ -16,7 +16,7 @@
 #define CLR_CYAN   C2D_Color32(0, 230, 255, 255)
 #define CLR_CYAN_D C2D_Color32(0, 230, 255, 60)
 #define CLR_BTN    C2D_Color32(40, 55, 75, 255)
-#define CLR_BTN_HI C2D_Color32(55, 75, 100, 255)
+#define CLR_LGRAY  C2D_Color32(160, 160, 160, 255)
 
 #define COLS       5
 #define ROWS       2
@@ -54,7 +54,7 @@ static View g_view = VIEW_HOME;
 static SoundList g_bookmarks;
 static bool g_bm_dirty = false;
 
-#define BOOKMARK_FILE "bookmarks.txt"
+#define BOOKMARK_FILE "sdmc:/3ds/savedinstants.txt"
 
 typedef enum { NET_IDLE, NET_LOADING, NET_DONE, NET_ERROR } NetState;
 static volatile NetState g_net_state = NET_IDLE;
@@ -117,6 +117,9 @@ static bool net_poll(void) {
     }
     if (g_net_state == NET_ERROR) {
         if (g_net_thread) { threadJoin(g_net_thread, U64_MAX); threadFree(g_net_thread); g_net_thread = NULL; }
+        strncpy(g_toast_msg, g_net_err[0] ? g_net_err : "Network error", sizeof(g_toast_msg) - 1);
+        g_toast_msg[sizeof(g_toast_msg) - 1] = '\0';
+        g_toast_timer = 120;
         g_net_state = NET_IDLE;
         return true;
     }
@@ -340,35 +343,38 @@ static void switch_view(View v) {
 
 /* ---- Drawing helpers ---- */
 
-static void draw_circle_outline(float cx, float cy, float r, float thickness, u32 color) {
+static void draw_circle_filled(float cx, float cy, float r, u32 color) {
     int y0 = (int)(cy - r), y1 = (int)(cy + r);
     for (int y = y0; y <= y1; y++) {
         float dy = (float)y + 0.5f - cy;
         float d = r * r - dy * dy;
         if (d < 0) continue;
         float hw = sqrtf(d);
-        float inner = hw - thickness;
-        if (inner < 0) inner = 0;
-        C2D_DrawRectSolid(cx - hw, (float)y, 0.8f, hw - inner, 1.0f, color);
-        C2D_DrawRectSolid(cx + inner, (float)y, 0.8f, hw - inner, 1.0f, color);
+        C2D_DrawRectSolid(cx - hw, (float)y, 0.8f, hw * 2.0f, 1.0f, color);
     }
 }
 
+static void draw_circle_outline(float cx, float cy, float r, float thickness, u32 color) {
+    draw_circle_filled(cx, cy, r, color);
+    float inner = r - thickness;
+    if (inner > 0)
+        draw_circle_filled(cx, cy, inner, CLR_BG);
+}
+
 static void draw_round_btn(float x, float y, float w, float h,
-                           const char *label, bool pressed) {
-    u32 bg = pressed ? CLR_BTN_HI : CLR_BTN;
+                           const char *label) {
     float r = 8.0f;
     /* Center body */
-    C2D_DrawRectSolid(x + r, y, 0.8f, w - 2 * r, h, bg);
+    C2D_DrawRectSolid(x + r, y, 0.8f, w - 2 * r, h, CLR_BTN);
     /* Left cap */
-    C2D_DrawRectSolid(x, y + r, 0.8f, r, h - 2 * r, bg);
+    C2D_DrawRectSolid(x, y + r, 0.8f, r, h - 2 * r, CLR_BTN);
     /* Right cap */
-    C2D_DrawRectSolid(x + w - r, y + r, 0.8f, r, h - 2 * r, bg);
+    C2D_DrawRectSolid(x + w - r, y + r, 0.8f, r, h - 2 * r, CLR_BTN);
     /* Four corner circles approximated by squares */
-    C2D_DrawRectSolid(x, y, 0.8f, r, r, bg);
-    C2D_DrawRectSolid(x + w - r, y, 0.8f, r, r, bg);
-    C2D_DrawRectSolid(x, y + h - r, 0.8f, r, r, bg);
-    C2D_DrawRectSolid(x + w - r, y + h - r, 0.8f, r, r, bg);
+    C2D_DrawRectSolid(x, y, 0.8f, r, r, CLR_BTN);
+    C2D_DrawRectSolid(x + w - r, y, 0.8f, r, r, CLR_BTN);
+    C2D_DrawRectSolid(x, y + h - r, 0.8f, r, r, CLR_BTN);
+    C2D_DrawRectSolid(x + w - r, y + h - r, 0.8f, r, r, CLR_BTN);
     /* Label */
     C2D_Text t;
     C2D_TextFontParse(&t, NULL, g_tbuf, label);
@@ -488,12 +494,12 @@ static void render_top(void) {
 /* Nav button layout at top of bottom screen */
 #define NAV_Y      4.0f
 #define NAV_H      26.0f
-#define NAV_HOME_X  10.0f
+#define NAV_HOME_X  17.0f
 #define NAV_HOME_W  80.0f
 #define NAV_BM_X   106.0f
 #define NAV_BM_W   108.0f
-#define NAV_SR_X   230.0f
-#define NAV_SR_W   80.0f
+#define NAV_SR_X   222.0f
+#define NAV_SR_W   81.0f
 
 /* Star button */
 #define STAR_SIZE  62.0f
@@ -502,9 +508,31 @@ static void render_top(void) {
 
 static void render_bottom(void) {
     /* Nav buttons (always visible) */
-    draw_round_btn(NAV_HOME_X, NAV_Y, NAV_HOME_W, NAV_H, "HOME", false);
-    draw_round_btn(NAV_BM_X, NAV_Y, NAV_BM_W, NAV_H, "BOOKMARKS", false);
-    draw_round_btn(NAV_SR_X, NAV_Y, NAV_SR_W, NAV_H, "SEARCH", false);
+    draw_round_btn(NAV_HOME_X, NAV_Y, NAV_HOME_W, NAV_H, "HOME");
+    draw_round_btn(NAV_BM_X, NAV_Y, NAV_BM_W, NAV_H, "BOOKMARKS");
+    draw_round_btn(NAV_SR_X, NAV_Y, NAV_SR_W, NAV_H, "SEARCH");
+
+    /* Button hints — outline circles left of HOME (B) and right of SEARCH (Y) */
+    {
+        float hint_r = 7.0f;
+        float hint_y = NAV_Y + NAV_H / 2.0f;
+        /* B hint left of HOME */
+        float bx = NAV_HOME_X - hint_r - 3.0f;
+        draw_circle_outline(bx, hint_y, hint_r, 1.5f, CLR_LGRAY);
+        C2D_Text ht;
+        C2D_TextFontParse(&ht, NULL, g_tbuf, "B");
+        float hw2, hh2;
+        C2D_TextGetDimensions(&ht, 0.36f, 0.36f, &hw2, &hh2);
+        C2D_DrawText(&ht, C2D_WithColor, bx - hw2 / 2.0f, hint_y - hh2 / 2.0f,
+                     0.85f, 0.36f, 0.36f, CLR_LGRAY);
+        /* Y hint right of SEARCH */
+        float syx = NAV_SR_X + NAV_SR_W + hint_r + 3.0f;
+        draw_circle_outline(syx, hint_y, hint_r, 1.5f, CLR_LGRAY);
+        C2D_TextFontParse(&ht, NULL, g_tbuf, "Y");
+        C2D_TextGetDimensions(&ht, 0.36f, 0.36f, &hw2, &hh2);
+        C2D_DrawText(&ht, C2D_WithColor, syx - hw2 / 2.0f, hint_y - hh2 / 2.0f,
+                     0.85f, 0.36f, 0.36f, CLR_LGRAY);
+    }
 
     if (g_list.count > 0 && !g_show_info && g_btn.tex) {
         C2D_Image *img = g_btn_pressed ? &g_btn_pressed_img : &g_btn;
@@ -529,17 +557,17 @@ static void render_bottom(void) {
         if (star_img->tex)
             C2D_DrawImageAt(*star_img, STAR_X, STAR_Y, 0.8f, NULL, 1.0f, 1.0f);
 
-        /* X button indicator — outline circle with X inside, left of star */
-        float ind_r = 12.0f;
-        float ind_cx = STAR_X - ind_r - 4.0f;
-        float ind_cy = STAR_Y + STAR_SIZE / 2.0f;
-        draw_circle_outline(ind_cx, ind_cy, ind_r, 2.0f, CLR_WHITE);
+        /* X button indicator — outline circle with X inside, above star */
+        float ind_r = 9.0f;
+        float ind_cx = STAR_X + STAR_SIZE / 2.0f;
+        float ind_cy = STAR_Y - ind_r;
+        draw_circle_outline(ind_cx, ind_cy, ind_r, 1.5f, CLR_LGRAY);
         C2D_Text xt;
         C2D_TextFontParse(&xt, NULL, g_tbuf, "X");
         float xtw, xth;
-        C2D_TextGetDimensions(&xt, 0.38f, 0.38f, &xtw, &xth);
+        C2D_TextGetDimensions(&xt, 0.50f, 0.50f, &xtw, &xth);
         C2D_DrawText(&xt, C2D_WithColor, ind_cx - xtw / 2.0f, ind_cy - xth / 2.0f,
-                     0.85f, 0.38f, 0.38f, CLR_WHITE);
+                     0.85f, 0.50f, 0.50f, CLR_LGRAY);
     }
 
     /* A button hint — centered between button and bottom edge */
@@ -666,8 +694,7 @@ int main(void) {
 
         player_is_playing();
 
-        if (net_poll()) {
-        }
+        net_poll();
         if (g_info_state == NET_DONE) {
             if (g_info_thread) { threadJoin(g_info_thread, U64_MAX); threadFree(g_info_thread); g_info_thread = NULL; }
             g_have_detail = true;
@@ -683,6 +710,11 @@ int main(void) {
             int prc = player_poll_play(perr, sizeof(perr));
             if (prc == -1) {
                 g_dl_loading = true;
+            } else if (prc > 0 && g_dl_loading) {
+                g_dl_loading = false;
+                strncpy(g_toast_msg, perr[0] ? perr : "Playback error", sizeof(g_toast_msg) - 1);
+                g_toast_msg[sizeof(g_toast_msg) - 1] = '\0';
+                g_toast_timer = 120;
             } else if (g_dl_loading) {
                 g_dl_loading = false;
             }
@@ -704,6 +736,8 @@ int main(void) {
             toggle_bookmark(g_sel);
         if (g_show_info && (kDown & KEY_B))
             g_show_info = false;
+        else if (kDown & KEY_B)
+            switch_view(VIEW_HOME);
 
         g_btn_pressed = false;
 

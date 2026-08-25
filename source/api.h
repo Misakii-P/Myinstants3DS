@@ -39,8 +39,7 @@ int api_search(const char *query, SoundList *out, char *errmsg, size_t errlen);
 int api_trending(const char *region, SoundList *out, char *errmsg, size_t errlen);
 int api_detail(const char *id, SoundDetail *out, char *errmsg, size_t errlen);
 
-int api_http_get(const char *url, char **out_body, size_t *out_len,
-                 size_t max_len);
+int api_http_get(const char *url, char **out_body, size_t *out_len);
 
 void api_curl_setopts(void *curl);
 

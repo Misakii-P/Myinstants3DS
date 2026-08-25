@@ -69,8 +69,7 @@ void api_curl_setopts(void *curl_handle) {
     curl_easy_setopt(e, CURLOPT_IPRESOLVE, (long)CURL_IPRESOLVE_V4);
 }
 
-int api_http_get(const char *url, char **out_body, size_t *out_len,
-                 size_t max_len) {
+int api_http_get(const char *url, char **out_body, size_t *out_len) {
     api_curl_ensure();
 
     *out_body = NULL;
@@ -93,7 +92,6 @@ int api_http_get(const char *url, char **out_body, size_t *out_len,
     curl_easy_setopt(e, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(e, CURLOPT_WRITEDATA, &m);
     api_curl_setopts(e);
-    (void)max_len;
 
     CURLcode rc = curl_easy_perform(e);
 
@@ -298,7 +296,7 @@ void api_html_decode(char *s) {
 }
 
 static void rewrite_https(char *url) {
-    /* "https://..." -> "http://..." (3DS httpc handles plain HTTP best) */
+    /* "https://..." -> "http://..." (Cloudflare blocks curl TLS via JA3 fingerprint) */
     if (strncmp(url, "https://", 8) == 0)
         memmove(url + 4, url + 5, strlen(url + 5) + 1);
 }
@@ -358,10 +356,10 @@ static int fetch_list(const char *url, SoundList *out, char *errmsg,
     memset(out, 0, sizeof(*out));
     char *body = NULL;
     size_t blen = 0;
-    int rc = api_http_get(url, &body, &blen, 1 << 22);
+    int rc = api_http_get(url, &body, &blen);
     if (rc != 0) {
         snprintf(errmsg, errlen, "HTTP error %d [%s]", rc, g_http_err);
-        return rc ? rc : -1;
+        return rc;
     }
     const char *arr = find_data_array(body);
     if (!arr) {
@@ -433,10 +431,10 @@ int api_detail(const char *id, SoundDetail *out, char *errmsg, size_t errlen) {
 
     char *body = NULL;
     size_t blen = 0;
-    int rc = api_http_get(url, &body, &blen, 1 << 20);
+    int rc = api_http_get(url, &body, &blen);
     if (rc != 0) {
         snprintf(errmsg, errlen, "Fetch failed (%d) [%s]", rc, g_http_err);
-        return rc ? rc : -1;
+        return rc;
     }
     /* data is a single object */
     const char *d = strstr(body, "\"data\"");
