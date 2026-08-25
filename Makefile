@@ -19,8 +19,9 @@ GRAPHICS	:=	gfx
 ROMFS		:=	romfs
 GFXBUILD	:=	$(ROMFS)/gfx
 
-APP_TITLE	:=	MyInstants 3DS
+APP_TITLE	:=	Myinstants3DS
 APP_AUTHOR	:=	chris
+APP_DESCRIPTION	:=	Play silly sound buttons from your 3DS :P
 
 #---------------------------------------------------------------------------------
 # options for code generation

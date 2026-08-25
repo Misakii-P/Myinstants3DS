@@ -635,8 +635,6 @@ static void render_bottom(void) {
                      0.9f, 0.34f, 0.34f, CLR_CYAN);
     }
 
-    if (player_is_playing())
-        C2D_DrawRectSolid(308.0f, 228.0f, 0.4f, 6.0f, 6.0f, CLR_WHITE);
 }
 
 static void render_frame(void) {
