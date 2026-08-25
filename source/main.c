@@ -80,13 +80,23 @@ static void net_thread_func(void *arg) {
     g_net_state = g_net_rc == 0 ? NET_DONE : NET_ERROR;
 }
 
+static void join_net_thread(void) {
+    if (g_net_thread) {
+        threadJoin(g_net_thread, U64_MAX);
+        threadFree(g_net_thread);
+        g_net_thread = NULL;
+    }
+}
+
 static void net_start_trending(void) {
+    join_net_thread();
     g_net_is_search = false;
     g_net_state = NET_LOADING;
     g_net_thread = threadCreate(net_thread_func, NULL, 0x10000, 0x30, -1, false);
 }
 
 static void net_start_search(const char *query) {
+    join_net_thread();
     g_net_is_search = true;
     strncpy(g_net_query, query, sizeof(g_net_query) - 1);
     g_net_query[sizeof(g_net_query) - 1] = '\0';
@@ -252,6 +262,8 @@ static void toggle_info(void) {
         g_show_info = false;
         return;
     }
+    /* Join any previous info thread */
+    if (g_info_thread) { threadJoin(g_info_thread, U64_MAX); threadFree(g_info_thread); g_info_thread = NULL; }
     strncpy(g_info_id, g_list.items[g_sel].id, sizeof(g_info_id) - 1);
     g_info_id[sizeof(g_info_id) - 1] = '\0';
     g_info_state = NET_LOADING;
@@ -305,6 +317,8 @@ static void goto_page(int page) {
     if (page > mp) page = mp;
     g_page = page;
     g_sel = page * PAGE_SIZE;
+    if (g_sel >= g_list.count)
+        g_sel = g_list.count > 0 ? g_list.count - 1 : 0;
     g_show_info = false;
 }
 
