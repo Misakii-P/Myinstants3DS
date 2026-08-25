@@ -1,0 +1,12 @@
+build/
+*.elf
+*.o
+*.d
+*.map
+*.lst
+*.3dsx
+*.smdh
+*.t3x
+romfs/gfx/
+t1.3dsx
+source/main.c.full
