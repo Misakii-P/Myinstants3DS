@@ -6,6 +6,8 @@ A homebrew client for [Myinstants](https://www.myinstants.com) for the Nintendo 
 
 ## Features
 
+![screesnhot](https://github.com/Misakii-P/Myinstants3DS/blob/master/gfx/myinstantscr1.png)
+
 - **Browse trending sounds** on the HOME section
 - **Search** any sounds from keywords
 - **Play sounds** streamed via MP3 decoding with double-buffered NDSP playback
