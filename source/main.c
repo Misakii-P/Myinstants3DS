@@ -340,6 +340,16 @@ static void switch_view(View v) {
 
 /* ---- Drawing helpers ---- */
 
+static void draw_circle_filled(float cx, float cy, float r, u32 color) {
+    int y0 = (int)(cy - r), y1 = (int)(cy + r);
+    for (int y = y0; y <= y1; y++) {
+        float dy = (float)y + 0.5f - cy;
+        float hw = sqrtf(r * r - dy * dy);
+        if (hw < 0.5f) hw = 0.5f;
+        C2D_DrawRectSolid(cx - hw, (float)y, 0.8f, hw * 2, 1.0f, color);
+    }
+}
+
 static void draw_round_btn(float x, float y, float w, float h,
                            const char *label, bool pressed) {
     u32 bg = pressed ? CLR_BTN_HI : CLR_BTN;
@@ -514,6 +524,18 @@ static void render_bottom(void) {
         C2D_Image *star_img = bm ? &g_bm_filled : &g_bm_empty;
         if (star_img->tex)
             C2D_DrawImageAt(*star_img, STAR_X, STAR_Y, 0.8f, NULL, 1.0f, 1.0f);
+
+        /* X button indicator — circle with X inside, left of star */
+        float ind_r = 10.0f;
+        float ind_cx = STAR_X - ind_r - 4.0f;
+        float ind_cy = STAR_Y + STAR_SIZE / 2.0f;
+        draw_circle_filled(ind_cx, ind_cy, ind_r, CLR_BTN);
+        C2D_Text xt;
+        C2D_TextFontParse(&xt, NULL, g_tbuf, "X");
+        float xtw, xth;
+        C2D_TextGetDimensions(&xt, 0.30f, 0.30f, &xtw, &xth);
+        C2D_DrawText(&xt, C2D_WithColor, ind_cx - xtw / 2.0f, ind_cy - xth / 2.0f,
+                     0.85f, 0.30f, 0.30f, CLR_WHITE);
     }
 
     /* A button hint — centered between button and bottom edge */
@@ -663,9 +685,8 @@ int main(void) {
         }
 
         if (kDown & KEY_START) break;
-        if (kDown & KEY_SELECT) {
-            player_stop();
-        }
+        if (kDown & KEY_SELECT)
+            toggle_info();
 
         if (kDown & KEY_Y)
             do_search();
@@ -676,7 +697,7 @@ int main(void) {
         if (kDown & KEY_A)
             do_play_selected();
         if (kDown & KEY_X)
-            toggle_info();
+            toggle_bookmark(g_sel);
         if (g_show_info && (kDown & KEY_B))
             g_show_info = false;
 
