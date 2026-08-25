@@ -530,16 +530,16 @@ static void render_bottom(void) {
             C2D_DrawImageAt(*star_img, STAR_X, STAR_Y, 0.8f, NULL, 1.0f, 1.0f);
 
         /* X button indicator — outline circle with X inside, left of star */
-        float ind_r = 10.0f;
+        float ind_r = 12.0f;
         float ind_cx = STAR_X - ind_r - 4.0f;
         float ind_cy = STAR_Y + STAR_SIZE / 2.0f;
-        draw_circle_outline(ind_cx, ind_cy, ind_r, 1.5f, CLR_WHITE);
+        draw_circle_outline(ind_cx, ind_cy, ind_r, 2.0f, CLR_WHITE);
         C2D_Text xt;
         C2D_TextFontParse(&xt, NULL, g_tbuf, "X");
         float xtw, xth;
-        C2D_TextGetDimensions(&xt, 0.30f, 0.30f, &xtw, &xth);
+        C2D_TextGetDimensions(&xt, 0.38f, 0.38f, &xtw, &xth);
         C2D_DrawText(&xt, C2D_WithColor, ind_cx - xtw / 2.0f, ind_cy - xth / 2.0f,
-                     0.85f, 0.30f, 0.30f, CLR_WHITE);
+                     0.85f, 0.38f, 0.38f, CLR_WHITE);
     }
 
     /* A button hint — centered between button and bottom edge */
