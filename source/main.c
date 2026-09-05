@@ -7,6 +7,7 @@
 
 #include "api.h"
 #include "player.h"
+#include "cache.h"
 
 #define CLR_BG     C2D_Color32(21, 32, 43, 255)
 #define CLR_WHITE  C2D_Color32(255, 255, 255, 255)
@@ -53,6 +54,8 @@ static View g_view = VIEW_HOME;
 
 static SoundList g_bookmarks;
 static bool g_bm_dirty = false;
+
+static SoundCache g_cache;
 
 #define BOOKMARK_FILE "sdmc:/3ds/savedinstants.txt"
 
@@ -256,7 +259,13 @@ static void do_play_selected(void) {
     if (g_list.count == 0 || g_sel >= g_list.count)
         return;
     char err[160] = "";
-    player_play_url(g_list.items[g_sel].mp3, err, sizeof(err));
+    player_play_url(g_list.items[g_sel].mp3, g_list.items[g_sel].id,
+                    err, sizeof(err));
+    if (err[0]) {
+        strncpy(g_toast_msg, err, sizeof(g_toast_msg) - 1);
+        g_toast_msg[sizeof(g_toast_msg) - 1] = '\0';
+        g_toast_timer = 120;
+    }
 }
 
 static void toggle_info(void) {
@@ -678,6 +687,8 @@ int main(void) {
 
     ndspInit();
     api_soc_init();
+    cache_init(&g_cache);
+    player_set_cache(&g_cache);
     bookmark_load();
     do_fetch_trending();
 
@@ -704,7 +715,8 @@ int main(void) {
         }
 
         {
-            char perr[160] = "";
+            static char perr[160];
+            perr[0] = '\0';
             int prc = player_poll_play(perr, sizeof(perr));
             if (prc == -1) {
                 g_dl_loading = true;
@@ -803,6 +815,7 @@ int main(void) {
     }
 
     player_stop();
+    cache_free(&g_cache);
     if (g_bm_dirty) { bookmark_save(); g_bm_dirty = false; }
     /* Join all network threads before curl cleanup */
     if (g_net_thread) { threadJoin(g_net_thread, U64_MAX); threadFree(g_net_thread); g_net_thread = NULL; }

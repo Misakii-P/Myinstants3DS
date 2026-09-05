@@ -11,6 +11,7 @@ A homebrew client for [Myinstants](https://www.myinstants.com) for the Nintendo 
 - **Browse trending sounds** on the HOME section
 - **Search** any sounds from keywords
 - **Play sounds** streamed via MP3 decoding with double-buffered NDSP playback
+- **RAM cache** — recently played sounds are cached in memory (up to 32 entries / 4 MiB) for instant replay without re-downloading
 - **Bookmark system** — save your favorite sound links to SD card, easily revisit them on the BOOKMARKS section
 - **Intuitive visuals** — a selection of 10 buttons on the top screen for each page, large play button and hints for each
 - **Circle pad & D-pad** navigation with page wrapping
@@ -67,6 +68,7 @@ myinstants3ds/
 │   ├── main.c          # UI, input, dual-screen rendering
 │   ├── api.c / api.h   # HTTP client (libcurl), JSON parsing, Myinstants API
 │   ├── player.c / player.h  # Async MP3 download + double-buffered NDSP playback
+│   ├── cache.c / cache.h    # LRU RAM cache for recently played sounds (32 entries, 4 MiB)
 │   └── dr_mp3.h        # Vendored single-header MP3 decoder
 ├── gfx/
 │   ├── button.t3s      # tex3ds spritesheet spec
@@ -84,6 +86,7 @@ myinstants3ds/
 
 - **Networking**: Uses libcurl with portlibs (not native httpc) to bypass Cloudflare's JA3 fingerprinting. IPv4-only, HTTP/1.1, browser User-Agent string.
 - **Audio**: dr_mp3 decodes MP3 frames from a 2MB in-memory buffer into 64KB ndsp wave buffers. Audio download runs on a background thread; ndsp init happens on the main thread after download completes.
+- **Cache**: Recently played sounds are cached in linear-alloc'd RAM (up to 32 entries, 4 MiB total). LRU eviction. On cache hit playback starts instantly with no network request.
 - **API**: Talks to `myinstants-api.vercel.app`. Returns up to 36 results per query. No pagination support — the API returns all available results.
 - **Bookmarks**: Persisted to `bookmarks.txt` on SD card (pipe-delimited). Max 36 bookmarks. Saved on view switch or app exit.
 
